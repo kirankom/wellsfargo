@@ -3,7 +3,9 @@ package org.wellsfargo.tealeaf;
 
 
 import java.io.IOException;
+import java.util.Properties;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -26,6 +28,9 @@ public class TeaLeafLogMapper extends Mapper<LongWritable, Text, BytesWritable, 
  boolean inTimeStamp=false;
  boolean inURL=false;
  boolean inCookie=false;
+ int blobSeq=0;
+ boolean firstJob = true;
+ 
  /*
   * (non-Javadoc)
   * @see org.apache.hadoop.mapreduce.Mapper#map(KEYIN, VALUEIN, org.apache.hadoop.mapreduce.Mapper.Context)
@@ -38,7 +43,17 @@ public class TeaLeafLogMapper extends Mapper<LongWritable, Text, BytesWritable, 
  public void setup(Context context) {
  
  mos = new MultipleOutputs(context);
+ 
+ Configuration conf = context.getConfiguration();
+ if (conf.get("firstJob").equals("true"))
+		 firstJob=true;
+ else
+	 firstJob=false;
+ 
  }
+ 
+ 
+
  
  protected void cleanup(Context context)
          throws IOException,InterruptedException
@@ -47,11 +62,38 @@ public class TeaLeafLogMapper extends Mapper<LongWritable, Text, BytesWritable, 
 	 				
 	 				if (entry !=null) //have we seen any text after final entry?
 	 				  {
-	 					  entry.isComplete.set(false);
+
+	 					  entry.top.set(blobSeq++);
 	 					  FileSplit fileSplit = (FileSplit)context.getInputSplit();
 	 					  entry.fileName.set(fileSplit.getPath().getName());
+
+	 					  if (firstJob)
+	 					  {
+	 					  StringBuilder finalblob = new StringBuilder();
+	 					  finalblob.append("Header T$SP$01 " + "\n");
+	 					  finalblob.append("TLTSID=" + entry.SID.toString() + "\n");
+	 					  finalblob.append("TLTHID=" +entry.HID.toString() + "\n");
+	 					  finalblob.append("TLTUID=" +entry.UID.toString() + "\n");
+	 					  finalblob.append("[env]"+"\n");
 	 					  
-	 					  mos.write("blob", SOME_KEY, entry);
+	 					  finalblob.append(entry.request.toString() + "\n");
+	 					  
+	 					  finalblob.append("[timestamp]"+"\n");
+	 					  finalblob.append(entry.timestamp.toString() + "\n");
+	 					  
+	 					  finalblob.append("[urlfield]"+"\n");
+	 					  finalblob.append(entry.urlfield.toString() + "\n");
+	 					  
+	 					  finalblob.append("[ResponseHeaders]"+"\n");
+	 					  finalblob.append(entry.response.toString() + "\n");
+	 					 
+	 					  entry.blob.set(finalblob.toString());
+	 					  mos.write("blob", SOME_KEY, new Text(entry.toString()));
+	 					  }
+	 					  else
+	 						 mos.write("full1", SOME_KEY, new Text(entry.toString()));
+	 						  
+	 					  
 	 					  
 	 					  //context.write(SOME_KEY, new Text(entry.toString()));
 	 				  }
@@ -67,7 +109,8 @@ public class TeaLeafLogMapper extends Mapper<LongWritable, Text, BytesWritable, 
 	  {
 		  if(entry!=null) // have i already built an entry?
 			  {
-			   	entry.isComplete.set(true);
+			   	//entry.isComplete.set(true);
+			   	
 			   	blob = new StringBuilder();
 			    mos.write("full1", NULL_KEY, new Text(entry.toString()));
 				  //context.write(NULL_KEY,entry);
@@ -78,7 +121,9 @@ public class TeaLeafLogMapper extends Mapper<LongWritable, Text, BytesWritable, 
 			  if (blob.length() >0) //have we seen any text before this entry?
 			  {
 				  entry=new LogEntry();
-				  entry.isComplete.set(false);
+				  
+				  entry.top.set(blobSeq++); // at top entry
+				  
 				  FileSplit fileSplit = (FileSplit)context.getInputSplit();
 				  entry.fileName.set(fileSplit.getPath().getName());
 				  entry.blob.set(blob.toString());
@@ -114,6 +159,7 @@ public class TeaLeafLogMapper extends Mapper<LongWritable, Text, BytesWritable, 
 			  {
 				  entry=new LogEntry();
 				  entry.isComplete.set(false);
+				  entry.top.set(blobSeq++);
 				  FileSplit fileSplit = (FileSplit)context.getInputSplit();
 				  entry.fileName.set(fileSplit.getPath().getName());
 				  entry.blob.set(blob.toString());

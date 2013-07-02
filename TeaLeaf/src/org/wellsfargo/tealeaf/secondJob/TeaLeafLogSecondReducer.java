@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.TreeSet;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
@@ -28,22 +29,22 @@ extends Reducer<BytesWritable, LogEntry, BytesWritable, LogEntry>
 	if (key.equals(NULL_KEY))
 		return;
 	
-	List<LogEntry> entries = new ArrayList();
+	List<LogEntry> entries = new ArrayList<LogEntry>();
 	
 	
 	for(LogEntry e : values)
-		entries.add(e);
+	//	entries.add(e);
+		context.write(key,e);
+	
+	
+	for(LogEntry e : entries)
+		context.write(key,e);
 	
 	Collections.sort(entries,new LogEntryComparator());
-	int count=0;
 	
-	LogEntry out = new LogEntry();
+	for(LogEntry e : entries)
+		context.write(key,e);
 	
-	for(int i=0;i<entries.size();i+=2)
-	{
-		    LogEntry e = CombineLogs(entries.get(i),entries.get(i+1)); //read two entries and combine them
-			context.write(key, e);
-	}
 
 }
 
@@ -57,20 +58,11 @@ private LogEntry CombineLogs(LogEntry logEntry, LogEntry logEntry2) {
 class LogEntryComparator implements Comparator<LogEntry>
 {
 
-	@Override
+	@Override	
 	public int compare(LogEntry arg0, LogEntry arg1) {
 		// TODO Auto-generated method stub
 		
-		if (arg0.fileName.toString().equals(arg1.fileName.toString()))
-			{
-				if (arg0.SID !=null)
-					return -1;
-				else
-					return 1;
-				
-			}
-		
-		return arg0.fileName.toString().compareTo(arg1.fileName.toString());
+		return (arg0.fileName.toString() + arg0.top ).compareTo(arg1.fileName.toString()+arg1.top);
 	}
 	
 }

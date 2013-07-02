@@ -5,11 +5,13 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.EOFException;
 import org.apache.hadoop.io.BooleanWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 public class LogEntry implements Writable {
 	public BooleanWritable isComplete = new BooleanWritable(false);
+	public IntWritable top = new IntWritable(2); //0 is top, 1 is bottom, 2 is middle
 	public Text UID = new Text(" ");
 	public Text HID=new Text(" ");
 	public Text SID=new Text(" ");
@@ -17,9 +19,9 @@ public class LogEntry implements Writable {
 	public Text response=new Text(" ");
 	public Text blob=new Text(" ");
 	public Text fileName = new Text(" ");
-	public Text timestamp = new Text();
-	public Text urlfield = new Text();
-	public Text cookies = new Text();
+	public Text timestamp = new Text(" ");
+	public Text urlfield = new Text(" ");
+	public Text cookies = new Text(" ");
 	
 	public String toString()
 	{
@@ -34,7 +36,7 @@ public class LogEntry implements Writable {
 		// TODO Auto-generated method stub
 		
 			fileName.readFields(in);
-			isComplete.readFields(in);
+			top.readFields(in);
 			UID.readFields(in);
 			HID.readFields(in);
 			SID.readFields(in);
@@ -52,7 +54,7 @@ public class LogEntry implements Writable {
 		// TODO Auto-generated method stub
 		
 		fileName.write(out);
-		isComplete.write(out);
+		top.write(out);
 		UID.write(out);
 		HID.write(out);
 		SID.write(out);

@@ -7,6 +7,9 @@ package org.wellsfargo.tealeaf;
  */
 
 
+import java.util.Properties;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
@@ -81,6 +84,10 @@ BytesWritable.class, Text.class);
 MultipleOutputs.addNamedOutput(job, "blob",
   SequenceFileOutputFormat.class,
   BytesWritable.class, LogEntry.class);
+
+Configuration conf = job.getConfiguration();
+conf.set("firstJob", args[2].toLowerCase()); //"true" assumes firstjob, false assumes secondjob.
+
 
 
 return job.waitForCompletion(true) ? 0 : 1;
