@@ -88,7 +88,7 @@ public class TeaLeafLogMapper extends Mapper<LongWritable, Text, BytesWritable, 
 	 					  finalblob.append(entry.response.toString() + "\n");
 	 					 
 	 					  entry.blob.set(finalblob.toString());
-	 					  mos.write("blob", SOME_KEY, new Text(entry.toString()));
+	 					  mos.write("blob", SOME_KEY, entry);
 	 					  }
 	 					  else
 	 						 mos.write("full1", SOME_KEY, new Text(entry.toString()));
